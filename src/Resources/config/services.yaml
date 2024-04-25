@@ -1,0 +1,76 @@
+services:
+
+  messenger.transport.amqp.factory:
+    class: Djereg\Symfony\RabbitMQ\Core\Transport\AmqpTransportFactory
+    tags:
+      - name: messenger.transport_factory
+
+  console.command.rabbitmq_consume_messages:
+    class: Djereg\Symfony\RabbitMQ\Core\Command\ConsumeCommand
+    tags:
+      - name: console.command
+      - name: monolog.logger
+        channel: messenger
+
+  messenger.listener.dispatch_pcntl_signal_listener:
+    class: Djereg\Symfony\RabbitMQ\Core\EventListener\DispatchPcntlSignalListener
+    tags:
+      - name: kernel.event_subscriber
+
+  messenger.listener.stop_worker_on_stop_exception_listener:
+    class: Djereg\Symfony\RabbitMQ\Core\EventListener\StopWorkerOnCustomStopExceptionListener
+    tags:
+      - name: kernel.event_subscriber
+
+  messenger.listener.reset_services:
+    class: Djereg\Symfony\RabbitMQ\Core\EventListener\ResetServicesListener
+    arguments:
+      - '@services_resetter'
+
+  Djereg\Symfony\RabbitMQ\Events\EventListener\PublishEventListener:
+    arguments:
+      - '@messenger.default_bus'
+    tags:
+      - name: kernel.event_listener
+        event: Djereg\Symfony\RabbitMQ\Events\Event\MessagePublishEvent
+
+  Djereg\Symfony\RabbitMQ\Core\EventListener\AddHandlerArgumentListener:
+    tags:
+      - name: kernel.event_listener
+
+  rabbitmq.event.event_dispatcher:
+    class: Djereg\Symfony\RabbitMQ\Events\Service\EventDispatcher
+    arguments:
+      - '@event_dispatcher'
+
+  Djereg\Symfony\RabbitMQ\Events\Service\EventDispatcher:
+    alias: rabbitmq.event.event_dispatcher
+
+  Djereg\Symfony\RabbitMQ\Core\EventListener\MessageSendingListener:
+    arguments:
+      - '@event_dispatcher'
+    tags:
+      - name: kernel.event_listener
+
+  rabbitmq.event.event_message_handler:
+    class: Djereg\Symfony\RabbitMQ\Events\MessageHandler\EventMessageHandler
+    arguments:
+      - '@event_dispatcher'
+    tags:
+      - name: messenger.message_handler
+
+  rabbitmq.rpc.request_message_handler:
+    class: Djereg\Symfony\RabbitMQ\RPC\MessageHandler\RequestMessageHandler
+    arguments:
+      - '@rabbitmq.rpc.server'
+      - '@messenger.default_bus'
+    tags:
+      - name: messenger.message_handler
+
+  rabbitmq.rpc.server:
+    class: Datto\JsonRpc\Server
+    arguments:
+      - '@rabbitmq.rpc.evaluator'
+
+  rabbitmq.rpc.evaluator:
+    class: Djereg\Symfony\RabbitMQ\RPC\Service\Evaluator
