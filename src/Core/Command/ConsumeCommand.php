@@ -2,6 +2,7 @@
 
 namespace Djereg\Symfony\RabbitMQ\Core\Command;
 
+use Djereg\Symfony\RabbitMQ\Core\Event\MessageReceivedEvent;
 use Djereg\Symfony\RabbitMQ\Core\EventListener\ResetServicesListener;
 use Djereg\Symfony\RabbitMQ\Core\EventListener\StopWorkerOnFailureLimitListener;
 use Djereg\Symfony\RabbitMQ\Core\EventListener\StopWorkerOnMemoryLimitListener;
@@ -10,6 +11,7 @@ use Djereg\Symfony\RabbitMQ\Core\EventListener\StopWorkerOnTimeLimitListener;
 use Djereg\Symfony\RabbitMQ\Core\Stamp\AmqpReceivedStamp;
 use Djereg\Symfony\RabbitMQ\Core\Transport\AmqpTransport;
 use Djereg\Symfony\RabbitMQ\Core\Worker;
+use PhpAmqpLib\Wire\AMQPTable;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
@@ -134,12 +136,30 @@ class ConsumeCommand extends Command implements SignalableCommandInterface
             $io->comment('Re-run the command with a -vv option to see logs about consumed messages.');
         }
 
-        $this->eventDispatcher->addListener(WorkerMessageReceivedEvent::class, function (WorkerMessageReceivedEvent $event) use ($io) {
+        $this->eventDispatcher->addListener(MessageReceivedEvent::class, function (MessageReceivedEvent $event) use ($io) {
 
             $message = $event->getEnvelope()->last(AmqpReceivedStamp::class)->getAmqpMessage();
-            $type = $message->get('application_headers')['X-Message-Type'] ?? null;
 
-            $io->text('Message received: ' . $type);
+            // Get the message headers
+            $headers = $message->get('application_headers') ?? [];
+            if ($headers instanceof AMQPTable) {
+                $headers = $headers->getNativeData();
+            }
+
+            // Get the message type
+            $type = $headers['X-Message-Type'] ?? null;
+
+            switch ($type) {
+                case 'message':
+                    $io->text('Received message: ' . ($headers['X-Message-Class'] ?? 'unknown'));
+                    break;
+                case 'event':
+                    $io->text('Received event: ' . ($headers['X-Event-Name'] ?? 'unknown'));
+                    break;
+                case 'request':
+                    $io->text('Received RPC request');
+                    break;
+            }
         });
 
         // $bus = $input->getOption('bus') ? $this->routableBus->getMessageBus($input->getOption('bus')) : $this->routableBus;
