@@ -71,12 +71,14 @@ readonly class Serializer implements SerializerInterface
 
     private function encodeMessage(Envelope $envelope): array
     {
+        $message = $envelope->getMessage();
         $encoded = $this->phpSerializer->encode($envelope);
 
         return array_merge($encoded, [
             'headers' => [
-                'X-Message-Type' => 'message',
-                'Content-Type'   => 'application/php-serialized',
+                'X-Message-Type'  => 'message',
+                'X-Message-Class' => $message::class,
+                'Content-Type'    => 'application/php-serialized',
             ],
         ]);
     }
