@@ -111,6 +111,7 @@ class Client implements ClientInterface
         // Trigger the event to allow modification of the envelope before sending
         $envelope = $this->dispatchPublishingEvent($envelope);
 
+        $message = null;
         $this->response = null;
 
         $this->initConsumer($queue);
@@ -137,15 +138,12 @@ class Client implements ClientInterface
                 continue;
             }
 
-            $message = $this->response?->last(AmqpReceivedStamp::class)->getAmqpMessage();
+            $message = $this->response->last(AmqpReceivedStamp::class)->getAmqpMessage();
 
-            if ($message?->get('correlation_id') === $uuid) {
+            if ($message->get('correlation_id') === $uuid) {
                 break;
             }
         }
-
-        /** @var ResponseMessage $message */
-        $message = $envelope->getMessage();
 
         try {
             $response = $this->client->decode($message->getBody());
