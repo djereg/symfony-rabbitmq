@@ -1,66 +1,69 @@
 services:
 
   messenger.transport.amqp.factory:
-    class: Djereg\Symfony\RabbitMQ\Core\Transport\AmqpTransportFactory
+    class: Djereg\Symfony\RabbitMQ\Transport\AmqpTransportFactory
     tags:
       - name: messenger.transport_factory
 
   console.command.rabbitmq_consume_messages:
-    class: Djereg\Symfony\RabbitMQ\Core\Command\ConsumeCommand
+    class: Djereg\Symfony\RabbitMQ\Command\ConsumeCommand
     tags:
       - name: console.command
       - name: monolog.logger
         channel: messenger
 
   messenger.listener.dispatch_pcntl_signal_listener:
-    class: Djereg\Symfony\RabbitMQ\Core\EventListener\DispatchPcntlSignalListener
+    class: Djereg\Symfony\RabbitMQ\EventListener\DispatchPcntlSignalListener
     tags:
       - name: kernel.event_subscriber
 
   messenger.listener.stop_worker_on_stop_exception_listener:
-    class: Djereg\Symfony\RabbitMQ\Core\EventListener\StopWorkerOnCustomStopExceptionListener
+    class: Djereg\Symfony\RabbitMQ\EventListener\StopWorkerOnCustomStopExceptionListener
     tags:
       - name: kernel.event_subscriber
 
   messenger.listener.reset_services:
-    class: Djereg\Symfony\RabbitMQ\Core\EventListener\ResetServicesListener
+    class: Djereg\Symfony\RabbitMQ\EventListener\ResetServicesListener
     arguments:
       - '@services_resetter'
 
-  Djereg\Symfony\RabbitMQ\Events\EventListener\PublishEventListener:
+  Djereg\Symfony\RabbitMQ\EventListener\PublishEventListener:
     arguments:
       - '@messenger.default_bus'
     tags:
       - name: kernel.event_listener
-        event: Djereg\Symfony\RabbitMQ\Events\Event\MessagePublishEvent
+        event: Djereg\Symfony\RabbitMQ\Event\MessagePublishEvent
 
-  Djereg\Symfony\RabbitMQ\Core\EventListener\AddHandlerArgumentListener:
+  Djereg\Symfony\RabbitMQ\EventListener\AddHandlerArgumentListener:
     tags:
       - name: kernel.event_listener
 
   rabbitmq.event.event_dispatcher:
-    class: Djereg\Symfony\RabbitMQ\Events\Service\EventDispatcher
+    class: Djereg\Symfony\RabbitMQ\Service\EventDispatcher
     arguments:
       - '@event_dispatcher'
 
-  Djereg\Symfony\RabbitMQ\Events\Service\EventDispatcher:
+  Djereg\Symfony\RabbitMQ\Service\EventDispatcher:
     alias: rabbitmq.event.event_dispatcher
 
-  Djereg\Symfony\RabbitMQ\Core\EventListener\MessageSendingListener:
+  Djereg\Symfony\RabbitMQ\Service\EnvelopeHeaders:
+    class: Djereg\Symfony\RabbitMQ\Service\EnvelopeHeaders
+
+  Djereg\Symfony\RabbitMQ\EventListener\MessageSendingListener:
     arguments:
       - '@event_dispatcher'
     tags:
       - name: kernel.event_listener
 
   rabbitmq.event.event_message_handler:
-    class: Djereg\Symfony\RabbitMQ\Events\MessageHandler\EventMessageHandler
+    class: Djereg\Symfony\RabbitMQ\MessageHandler\EventMessageHandler
     arguments:
       - '@event_dispatcher'
     tags:
       - name: messenger.message_handler
 
   rabbitmq.rpc.request_message_handler:
-    class: Djereg\Symfony\RabbitMQ\RPC\MessageHandler\RequestMessageHandler
+    class: Djereg\Symfony\RabbitMQ\MessageHandler\RequestMessageHandler
     arguments:
       - '@rabbitmq.rpc.server'
       - '@messenger.default_bus'
@@ -73,4 +76,4 @@ services:
       - '@rabbitmq.rpc.evaluator'
 
   rabbitmq.rpc.evaluator:
-    class: Djereg\Symfony\RabbitMQ\RPC\Service\Evaluator
+    class: Djereg\Symfony\RabbitMQ\Service\Evaluator
