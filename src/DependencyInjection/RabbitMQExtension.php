@@ -2,14 +2,10 @@
 
 namespace Djereg\Symfony\RabbitMQ\DependencyInjection;
 
-use Djereg\Symfony\RabbitMQ\Events\Attribute\AsEventListener;
-use Djereg\Symfony\RabbitMQ\RPC\Attribute\AsRemoteProcedure;
-use Djereg\Symfony\RabbitMQ\RPC\Attribute\AsServiceClient;
+use Djereg\Symfony\RabbitMQ\Attribute\AsMessageEventListener;
+use Djereg\Symfony\RabbitMQ\Attribute\AsRemoteProcedure;
 use ReflectionClass;
 use ReflectionMethod;
-use ReflectionParameter;
-use Symfony\Bundle\FrameworkBundle\DependencyInjection\Configuration;
-use Symfony\Component\Config\Definition\ConfigurationInterface;
 use Symfony\Component\Config\FileLocator;
 use Symfony\Component\DependencyInjection\ChildDefinition;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
@@ -47,14 +43,14 @@ class RabbitMQExtension extends Extension
         );
 
         $container->registerAttributeForAutoconfiguration(
-            AsEventListener::class,
+            AsMessageEventListener::class,
             static function (
                 ChildDefinition $definition,
-                AsEventListener $attribute,
+                AsMessageEventListener $attribute,
                 ReflectionClass|ReflectionMethod $reflector
             ) {
                 $tagAttributes = get_object_vars($attribute);
-                if ($reflector instanceof \ReflectionMethod) {
+                if ($reflector instanceof ReflectionMethod) {
                     if (isset($tagAttributes['method'])) {
                         throw new LogicException(sprintf('AsEventListener attribute cannot declare a method on "%s::%s()".', $reflector->class, $reflector->name));
                     }
