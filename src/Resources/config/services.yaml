@@ -67,6 +67,7 @@ services:
     arguments:
       - '@rabbitmq.rpc.server'
       - '@messenger.default_bus'
+      - '@event_dispatcher'
     tags:
       - name: messenger.message_handler
 
